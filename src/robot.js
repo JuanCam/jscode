@@ -1,9 +1,9 @@
-(function(wndw) {
-    wndw.getCommands = getCommands;
+(function(w) {
+    w.getCommands = getCommands;
 
     function CreateRobot(props) {
 
-        var coords;
+        var space;
         var field;
 
         Robot.prototype.setTarget = function(rowTarg, colTarg) {
@@ -25,7 +25,7 @@
 
             var horizontal = this.horizontal;
             var turn = false;
-            var pos = coords.findPosn(this.vertical, this.horizontal);
+            var pos = space.getPosition(this.row, this.col);
 
             if ((this.vertical != this.markRow && this.vertical != 0) || field[pos - 1] == '#') {
                 turn = true;
@@ -50,11 +50,6 @@
             return turn;
         }
 
-        Robot.prototype.depower = function() {
-
-            this.power -= this.powCost;
-        }
-
         Robot.prototype.move = function() {
 
             this.col -= this.horizontal;
@@ -63,38 +58,26 @@
         }
 
         Robot.prototype.see = function() {
-            var currSee = '';
+            this.currSee = '';
             if (this.vertical != 0) {
                 var currCol = getCurrentColumn.call(this);
-                currSee = currCol;
+                this.currSee = currCol;
             }
             if (this.horizontal != 0) {
                 var currRow = getCurrentRow.call(this);
-                currSee = currRow;
+                this.currSee = currRow;
+            }
+        }
+
+        Robot.prototype.decide = function() {
+            if (/[#]/g.test(this.currSee)) {
             }
         }
 
         Robot.prototype.goToTarg = function() {
 
-            return (function step(entity) {
-                if (entity.power > 0) {
-                    entity.locate();
-                    if (entity.arrived) {
-                        return entity.commands;
-                    }
-                    entity.see();
-                    coords.row = entity.row;
-                    coords.col = entity.col;
-                    if (!entity.turn()) {
-                        entity.move();
-                    }
-                    entity.depower();
-                    entity.commands.push(entity.command);
-                    return step(entity);
-                } else {
-                    return (entity.arrived) ? entity.commands : entity.arrived;
-                }
-            })(this);
+            return step.call(this);
+
         }
 
         return new Robot;
@@ -112,8 +95,8 @@
             this.arrived = false;
 
             /*Private attributes*/
-            coords = props.coords;
-            field = coords.field;
+            space = props.space;
+            field = space.field;
 
         }
 
@@ -122,8 +105,8 @@
         function getCurrentColumn() {
 
             var auxCol = (this.col - 1) - this.horizontal;
-            var rows = coords.rows;
-            return Array.prototype.filter.call(field, function(cell, index) {
+            var rows = space.rows;
+            var column = Array.prototype.filter.call(field, function(cell, index) {
 
                 if (index == (auxCol + rows)) {
                     auxCol += rows;
@@ -131,39 +114,71 @@
                 }
                 return false;
             }).join('');
+            return column;
 
         }
 
         function getCurrentRow() {
 
-            var crow1 = coords.findPosn(this.row, 0);
-            var crow2 = coords.findPosn(this.row, coords.rows);
-            return field.slice(crow1, crow2);
+            var crow1 = space.getPosition(this.row - this.vertical, 0, 0);
+            var crow2 = space.getPosition(this.row - this.vertical, space.rows, 0);
+            var row = field.slice(crow1, crow2);
+            return row;
 
         }
 
+        function depower() {
+
+            this.power -= this.powCost;
+        }
+
+        function step() {
+
+            if (this.power > 0) {
+                this.locate();
+                space.v = this.vertical;
+                space.h = this.horizontal;
+                if (this.arrived) {
+                    return this.commands;
+                }
+                this.see();
+                this.decide();
+                if (!this.turn()) {
+                    this.move();
+                }
+                depower.call(this);
+                this.commands.push(this.command);
+                return step.call(this);
+            } else {
+                return (this.arrived) ? this.commands : this.arrived;
+            }
+        }
     }
 
-    function CreateCoords(props) {
+    function CreateSpace(props) {
 
-        Coordinates.prototype.findCoords = function(el) {
-            var elPos = this.field.indexOf(el) + 1;
-            this.row = Math.ceil(elPos / this.rows);
-            this.col = this.rows - ((this.row * this.rows) - elPos);
-            return [this.row, this.col];
-        }
-        Coordinates.prototype.findPosn = function(v, h, dirs) {
-            var dirs = dirs || 1;
-            this.posn = (this.row - (v * dirs)) * this.rows - (this.rows - (this.col - (h * dirs)));
-            return (!isNaN(this.posn)) ? this.posn : undefined;
-        }
-        return new Coordinates;
+        return new Space;
 
-        function Coordinates() {
+        function Space() {
+            return {
+                field: props.field,
+                rows: props.rows,
+                getCoords: function(el) {
 
-            this.field = props.field;
-            this.rows = props.rows
+                    var elPos = this.field.indexOf(el) + 1;
+                    var row = Math.ceil(elPos / this.rows);
+                    var col = this.rows - ((row * this.rows) - elPos);
+                    return [row, col];
+                },
+                getPosition: function(row, col, dirs) {
+
+                    var dirs = (isUndefined(dirs)) ? 1 : dirs;
+                    var posn = (row - (this.v * dirs)) * this.rows - (this.rows - (col - (this.h * dirs)));
+                    return (!isNaN(posn)) ? posn : undefined;
+                }
+            }
         }
+
     }
 
     function getCommands(field, power) {
@@ -172,18 +187,18 @@
             console.warn('inconsistent field size')
             return [];
         }
-        var coords = CreateCoords({
+        var space = CreateSpace({
             field: field,
             rows: rows
         });
         //matrixfyString(field, rows);
-        var robotCoords = coords.findCoords('S');
-        var targetCoords = coords.findCoords('T');
+        var robotCoords = space.getCoords('S');
+        var targetCoords = space.getCoords('T');
 
         var robot = CreateRobot({
             row: robotCoords[0],
             col: robotCoords[1],
-            coords: coords,
+            space: space,
             power: power,
             vertical: 1,
             powCost: 1,
@@ -196,4 +211,10 @@
         }
         return [];
     }
+
+
+    function isUndefined(obj) {
+        return typeof(obj) === 'undefined';
+    }
+
 })(window);
