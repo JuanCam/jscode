@@ -1,5 +1,9 @@
 (function(w) {
-    w.getCommands = getCommands;
+
+    'use strict';
+
+    w.CreateSpace = CreateSpace;
+    w.CreateRobot = CreateRobot;
 
     function CreateRobot(props) {
 
@@ -70,8 +74,7 @@
         }
 
         Robot.prototype.decide = function() {
-            if (/[#]/g.test(this.currSee)) {
-            }
+            if (/[#]/g.test(this.currSee)) {}
         }
 
         Robot.prototype.goToTarg = function() {
@@ -83,7 +86,8 @@
         return new Robot;
 
         function Robot() {
-
+            /*Robot class, is the base to create a robot that
+            will move thru a 2d map*/
             this.row = props.row;
             this.col = props.col;
             this.power = props.power;
@@ -160,6 +164,8 @@
         return new Space;
 
         function Space() {
+            /*Space Class: Allows the conversion of the string field
+            to a matrix*/
             return {
                 field: props.field,
                 rows: props.rows,
@@ -168,7 +174,10 @@
                     var elPos = this.field.indexOf(el) + 1;
                     var row = Math.ceil(elPos / this.rows);
                     var col = this.rows - ((row * this.rows) - elPos);
-                    return [row, col];
+                    return {
+                        row: row,
+                        col: col
+                    };
                 },
                 getPosition: function(row, col, dirs) {
 
@@ -181,40 +190,41 @@
 
     }
 
-    function getCommands(field, power) {
-        var rows = Math.sqrt(field.length);
-        if (Math.abs(rows - Math.round(rows)) > 0) {
-            console.warn('inconsistent field size')
-            return [];
-        }
-        var space = CreateSpace({
-            field: field,
-            rows: rows
-        });
-        //matrixfyString(field, rows);
-        var robotCoords = space.getCoords('S');
-        var targetCoords = space.getCoords('T');
-
-        var robot = CreateRobot({
-            row: robotCoords[0],
-            col: robotCoords[1],
-            space: space,
-            power: power,
-            vertical: 1,
-            powCost: 1,
-            horizontal: 0
-        });
-        robot.setTarget(targetCoords[0], targetCoords[1]);
-
-        if (robot.goToTarg()) {
-            return robot.commands;
-        }
-        return [];
-    }
-
-
     function isUndefined(obj) {
         return typeof(obj) === 'undefined';
     }
 
 })(window);
+
+function getCommands(field, power) {
+    /*This function will use the Robot class to create
+    a robot and reacha target*/
+    var rows = Math.sqrt(field.length);
+    if (Math.abs(rows - Math.round(rows)) > 0) {
+        console.warn('inconsistent field size')
+        return [];
+    }
+    var space = CreateSpace({
+        field: field,
+        rows: rows
+    });
+    //matrixfyString(field, rows);
+    var robotCoords = space.getCoords('S');
+    var targetCoords = space.getCoords('T');
+
+    var robot = CreateRobot({
+        row: robotCoords.row,
+        col: robotCoords.col,
+        space: space,
+        power: power,
+        vertical: 1,
+        powCost: 1,
+        horizontal: 0
+    });
+    robot.setTarget(targetCoords.row, targetCoords.col);
+
+    if (robot.goToTarg()) {
+        return robot.commands;
+    }
+    return [];
+}
