@@ -191,7 +191,7 @@
     }
 
     function isUndefined(obj) {
-        return typeof(obj) === 'undefined';
+        return typeof obj === 'undefined';
     }
 
 })(window);
