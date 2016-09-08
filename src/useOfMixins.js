@@ -2,7 +2,7 @@
     M.rectangle = rectangle;
     M.circle = circle;
 
-    function Body (attrs) {
+    function Body(attrs) {
         this.x = attrs.x;
         this.y = attrs.y;
     };
@@ -26,7 +26,7 @@
 
     }
     Circle.prototype = {
-        setRadius: function (radius) {
+        setRadius: function(radius) {
             this.radius = radius;
         },
         render: function() {
@@ -35,7 +35,7 @@
     }
 
 
-    function rectangle (attrs) {
+    function rectangle(attrs) {
 
         var extended = M.augment(Body, [Rectangle]);
         var instance = new extended({ x: attrs.x, y: attrs.y });
@@ -45,7 +45,7 @@
         return instance
     }
 
-    function circle (attrs) {
+    function circle(attrs) {
 
         var extended = M.augment(Body, [Circle]);
         var instance = new extended({ x: attrs.x, y: attrs.y });
